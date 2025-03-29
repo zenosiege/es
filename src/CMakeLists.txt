@@ -3,7 +3,6 @@ message(STATUS "\tSources")
 
 add_executable(${CMAKE_PROJECT_NAME}
     main.cpp
-    pc_uart.cpp
 )
 
 target_include_directories(${CMAKE_PROJECT_NAME}
