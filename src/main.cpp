@@ -18,13 +18,9 @@ int main() {
 
     timer_enable_counter(TIM6);
 
+    // while(true+) не используем
     while(true) {
-        if(timer_get_counter(TIM6) < 800){
-            gpio_set(GPIOD, GPIO15);
-        }
-        else {
-            gpio_clear(GPIOD, GPIO15);
-        }
+        
     }
 
 }
@@ -32,6 +28,6 @@ int main() {
 // реакция от процессора на сигнал
 
 void tim6_dac_isr (void){
-    gpio_toggle(GPIOD, GPIO15);
     timer_clear_flag(TIM6, TIM_SR_UIF);
+    gpio_toggle(GPIOD, GPIO15);
 }
