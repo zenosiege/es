@@ -7,23 +7,30 @@
 int main() {
 
     rcc_periph_clock_enable(RCC_GPIOD);
-    gpio_mode_setup(GPIOD, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO15);
+    // AF - шта? это alternate function
+    gpio_mode_setup(GPIOD, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO15);
 
-    rcc_periph_clock_enable(RCC_TIM6);
-    timer_set_prescaler(TIM6, 8000-1);
-    timer_set_period(TIM6, 1000-1);
 
-    timer_enable_irq(TIM6, TIM_DIER_UIE);
-    nvic_enable_irq(NVIC_TIM6_DAC_IRQ);
+    gpio_set_af(GPIOD, GPIO_AF2, GPIO15);
 
-    timer_enable_counter(TIM6);
+    rcc_periph_clock_enable(RCC_TIM4);
+    timer_set_prescaler(TIM4, 8000-1);
+    timer_set_period(TIM4, 1000-1); // период счета (число-1)
 
-    // while(true+) не используем
+    timer_set_oc_mode(TIM4, TIM_OC4, TIM_OCM_TOGGLE);
+    timer_set_oc_value(TIM4, TIM_OC4, 500); //половина периода
+
+    timer_enable_oc_output(TIM4, TIM_OC4);
+    timer_enable_counter(TIM4);
+
+    // while(true) не используем
     while(true) {
         
     }
 
 }
+// ща мы попросим линию таймера самой управлять вводом-выводом
+// TIM4_CH4 - для PD15
 
 // реакция от процессора на сигнал
 
