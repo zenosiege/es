@@ -20,8 +20,14 @@
 */
 
 // uint16_t важно - учитывается разрядность счётчиков
-constexpr uint16_t timer6_clock_freq_hz{1000}; // Период тактирования таймера 6
-constexpr uint16_t step_interval_ms{2000}; // Шаг времени, с которым изменяется яркость
+constexpr uint16_t timer6_clock_freq_hz{1'000}; // Частота тактирования таймера 6
+constexpr uint16_t step_interval_ms{2'000}; // Шаг времени, с которым изменяется яркость
+
+constexpr uint32_t pwm_clock_freq_hz{1'000'000}; // Частота тактирования таймера ШИМ
+constexpr uint16_t pwm_interval_us{10'000}; // Период ШИМ-сигнала, мкс
+
+uint16_t oc3_val {pwm_interval_us / 2};
+uint16_t oc4_val {pwm_interval_us / 2 + 200};
 
 void pwm_setup(void) {
     rcc_periph_clock_enable(RCC_GPIOD);
@@ -32,12 +38,17 @@ void pwm_setup(void) {
     gpio_set_af(GPIOD, GPIO_AF2, GPIO15);
 
     rcc_periph_clock_enable(RCC_TIM4);
-    timer_set_prescaler(TIM4, 8000-1);
-    timer_set_period(TIM4, 1000-1); // период счета (число-1)
+    timer_set_prescaler(TIM4, rcc_get_timer_clk_freq(TIM4) / pwm_clock_freq_hz -1);
+    timer_set_period(TIM4, pwm_interval_us - 1); // период счета (число-1)
 
     timer_set_oc_mode(TIM4, TIM_OC4, TIM_OCM_PWM1); // PWM1 включается здесь. Изначально здесь стоял TOGGLE
-    timer_set_oc_value(TIM4, TIM_OC4, 0);
+    timer_set_oc_value(TIM4, TIM_OC4, oc4_val); // с нулем он будет просто мигать
     timer_enable_oc_output(TIM4, TIM_OC4); // разрешаем выход
+
+    timer_set_oc_mode(TIM4, TIM_OC3, TIM_OCM_PWM1); // PWM1 включается здесь. Изначально здесь стоял TOGGLE
+    timer_set_oc_value(TIM4, TIM_OC3, oc3_val); // с нулем он будет просто мигать
+    timer_enable_oc_output(TIM4, TIM_OC3); // разрешаем выход
+
 
     timer_enable_counter(TIM4);
 
@@ -70,12 +81,19 @@ int main() {
 }
 
 void tim6_dac_isr(void) {
-    static uint16_t val(100);
+    // что здесь?
     timer_clear_flag(TIM6, TIM_SR_UIF);
-    if (val >= 900) val = 100;
-    else val += 100;
-    timer_set_oc_value(TIM4, TIM_OC4, val);
+
+    if (oc3_val >= 900) oc3_val = 100;
+    else oc3_val += 100;
+
+    if (oc4_val >= 900) oc4_val = 100;
+    else oc4_val += 100;
+
+    timer_set_oc_value(TIM4, TIM_OC4, oc4_val);
+    timer_set_oc_value(TIM4, TIM_OC3, oc3_val);
 }
+
 // ща мы попросим линию таймера самой управлять вводом-выводом
 // TIM4_CH4 - для PD15
 
