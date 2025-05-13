@@ -4,8 +4,8 @@
 #include <libopencm3/cm3/nvic.h>
 
 // ПРЕРЫВАНИЕ ПО КНОПОЧКЕ (INPUT CAPTURE)
-uint32_t start;
-uint32_t stop;
+uint32_t duty;
+uint32_t period;
 
 void ic_setup(void) {
     rcc_periph_clock_enable(RCC_GPIOA);
@@ -20,8 +20,17 @@ void ic_setup(void) {
     timer_set_period(TIM5, 10000 - 1); // период счета (число-1)
 
     timer_ic_set_input(TIM5, TIM_IC1, TIM_IC_IN_TI1);
-    timer_ic_set_polarity(TIM5, TIM_IC1, TIM_IC_BOTH); // направление перехода (на что реагировать - переход из нуля в единицу или наоборот (или оба))
+    timer_ic_set_polarity(TIM5, TIM_IC1, TIM_IC_RISING); // направление перехода (на что реагировать - переход из нуля в единицу или наоборот (или оба))
+
+    timer_ic_set_input(TIM5, TIM_IC2, TIM_IC_IN_TI1);
+    timer_ic_set_polarity(TIM5, TIM_IC2, TIM_IC_FALLING); 
+
     timer_ic_enable(TIM5, TIM_IC1);
+    timer_ic_enable(TIM5, TIM_IC2);
+
+
+    timer_slave_set_trigger(TIM5, TIM_SMCR_TS_TI1FP1);
+    timer_slave_set_mode(TIM5, TIM_SMCR_SMS_RM);
 
     timer_enable_irq(TIM5, TIM_DIER_CC1IE);
     nvic_enable_irq(NVIC_TIM5_IRQ);
@@ -35,19 +44,26 @@ int main() {
     ic_setup();
     // while(true) не используем
     while(true) {
-        
+        volatile uint32_t d = duty;
+        volatile uint32_t p = period;
     }
 
 }
 
 void tim5_isr (void) {
-    static bool start_cond{true};
-    timer_clear_flag(TIM5, TIM_SR_CC1IF); //IF - Interact FLag
-
-    if (start_cond) start = TIM_CCR1(TIM5);
-    else stop = TIM_CCR1(TIM5);
-    start_cond = not start_cond;
+    timer_clear_flag(TIM5, TIM_SR_CC1IF);
+    duty = TIM_CCR2(TIM5); //импульс
+    period = TIM_CCR1(TIM5); //период
 }
+// void tim5_isr (void) {
+//     static bool start_cond{true};
+//     timer_clear_flag(TIM5, TIM_SR_CC1IF); //IF - Interact FLag
+
+//     if (start_cond) start = TIM_CCR1(TIM5);
+//     else stop = TIM_CCR1(TIM5);
+//     start_cond = not start_cond;
+// }
+
 // void tim6_dac_isr(void) {
 //     // что здесь?
 //     timer_clear_flag(TIM6, TIM_SR_UIF);
