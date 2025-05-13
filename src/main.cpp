@@ -1,63 +1,47 @@
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/timer.h>
+#include <libopencm3/stm32/usart.h>
 #include <libopencm3/cm3/nvic.h>
 
-// ПРЕРЫВАНИЕ ПО КНОПОЧКЕ (INPUT CAPTURE)
-uint32_t duty;
-uint32_t period;
 
-void ic_setup(void) {
-    
+// НАСТРОЙКА UART
+void uart_setup(uint32_t usart, uint32_t baud, uint32_t bits, uint32_t parity, uint32_t stopbits) {
+    // Настройка альт. функций линий порта РА
     rcc_periph_clock_enable(RCC_GPIOA);
     // AF - шта? это alternate function
-    gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO0);
-
-
-    gpio_set_af(GPIOA, GPIO_AF2, GPIO0);
-
-    rcc_periph_clock_enable(RCC_TIM5);
-    timer_set_prescaler(TIM5, 16000 - 1);
-    timer_set_period(TIM5, 10000 - 1); // период счета (число-1)
-
-    timer_ic_set_input(TIM5, TIM_IC1, TIM_IC_IN_TI1);
-    timer_ic_set_polarity(TIM5, TIM_IC1, TIM_IC_RISING); // направление перехода (на что реагировать - переход из нуля в единицу или наоборот (или оба))
-
-    timer_ic_set_input(TIM5, TIM_IC2, TIM_IC_IN_TI1);
-    timer_ic_set_polarity(TIM5, TIM_IC2, TIM_IC_FALLING); 
-
-    timer_ic_enable(TIM5, TIM_IC1);
-    timer_ic_enable(TIM5, TIM_IC2);
-
-
-    timer_slave_set_trigger(TIM5, TIM_SMCR_TS_TI1FP1);
-    timer_slave_set_mode(TIM5, TIM_SMCR_SMS_RM);
-
-    timer_enable_irq(TIM5, TIM_DIER_CC1IE);
-    nvic_enable_irq(NVIC_TIM5_IRQ);
-
-    timer_enable_counter(TIM5);
+    gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO2 | GPIO3); 
+    gpio_set_af(GPIOA, GPIO_AF7, GPIO2 | GPIO3);
+    
+    // Настройка УСАПП_1
+    
+    rcc_periph_clock_enable(RCC_USART2);
+    
+    usart_set_baudrate(usart, baud);
+    usart_set_databits(usart, bits);
+    usart_set_parity(usart, parity);
+    usart_set_stopbits(usart, stopbits);
+    
+    usart_set_mode(usart, USART_MODE_TX_RX);
+    usart_set_flow_control(usart, USART_FLOWCONTROL_NONE);
+    
+    
+    
+    
 
 }
 
 int main() {
-    volatile uint32_t d{};
-    volatile uint32_t p{};
-    
-    ic_setup();
+    uart_setup(USART2, 1115200, 8, USART_PARITY_NONE, USART_STOPBITS_1);
     // while(true) не используем
     while(true) {
-        volatile uint32_t d = duty;
-        volatile uint32_t p = period;
+        usart_send_blocking(USART1, 85);
+        for (volatile uint32_t i = 0; i < 500000; ++i); // задержки в попугаях
     }
 
 }
 
-void tim5_isr (void) {
-    timer_clear_flag(TIM5, TIM_SR_CC1IF);
-    duty = TIM_CCR2(TIM5); //импульс
-    period = TIM_CCR1(TIM5); //период
-}
+
 // void tim5_isr (void) {
 //     static bool start_cond{true};
 //     timer_clear_flag(TIM5, TIM_SR_CC1IF); //IF - Interact FLag
