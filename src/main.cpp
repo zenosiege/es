@@ -8,6 +8,7 @@ uint32_t duty;
 uint32_t period;
 
 void ic_setup(void) {
+    
     rcc_periph_clock_enable(RCC_GPIOA);
     // AF - шта? это alternate function
     gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO0);
@@ -40,7 +41,9 @@ void ic_setup(void) {
 }
 
 int main() {
-
+    volatile uint32_t d{};
+    volatile uint32_t p{};
+    
     ic_setup();
     // while(true) не используем
     while(true) {
