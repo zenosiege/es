@@ -25,18 +25,27 @@ void uart_setup(uint32_t usart, uint32_t baud, uint32_t bits, uint32_t parity, u
     usart_set_mode(usart, USART_MODE_TX_RX);
     usart_set_flow_control(usart, USART_FLOWCONTROL_NONE);
     
-    
+    usart_enable(usart);
     
     
 
 }
 
+char f = 'F';
+char u = 'U';
+char n = 'N';
+char y = 'Y';
+char newline = '\n';
 int main() {
-    uart_setup(USART2, 1115200, 8, USART_PARITY_NONE, USART_STOPBITS_1);
+    uart_setup(USART2, 115200, 8, USART_PARITY_NONE, USART_STOPBITS_1);
     // while(true) не используем
     while(true) {
-        usart_send_blocking(USART1, 85);
-        for (volatile uint32_t i = 0; i < 500000; ++i); // задержки в попугаях
+        if (usart_get_flag(USART2, USART_SR_RXNE)) {
+            uint16_t data = usart_recv(USART2);
+            usart_send_blocking(USART2, data);
+        } 
+        
+        //for (volatile uint32_t i = 0; i < 500000; ++i); // задержки в попугаях
     }
 
 }
