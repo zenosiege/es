@@ -1,11 +1,12 @@
+#include "circular_buffer.cpp"
+
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/timer.h>
 #include <libopencm3/stm32/usart.h>
 #include <libopencm3/cm3/nvic.h>
 
-// uint8_t buffer[32];
-// uint8_t wr_idx{};
+Circular_buffer b;
 
 // НАСТРОЙКА UART
 void uart_setup(uint32_t usart, uint32_t baud, uint32_t bits, uint32_t parity, uint32_t stopbits) {
@@ -35,20 +36,16 @@ void uart_setup(uint32_t usart, uint32_t baud, uint32_t bits, uint32_t parity, u
 
 
 int main() {
-    uint8_t buffer[32];
-    uint8_t wr_idx{};
 
     uart_setup(USART2, 115200, 8, USART_PARITY_NONE, USART_STOPBITS_1);
     // while(true) не используем
     while(true) {
-        if (usart_get_flag(USART2, USART_SR_RXNE)) {
-            uint16_t data = usart_recv(USART2);
-            usart_send_blocking(USART2, data);
-            buffer[wr_idx++] = static_cast<uint8_t>(data); //преобразование в uint8
-
-            wr_idx %= 32;
+        if (usart_get_flag(USART2, USART_SR_RXNE) and (not b.full())) {
+                b.put(static_cast<uint8_t>(usart_recv(USART2)));
         } 
-        
+        if (not b.empty()) {
+            usart_send_blocking(USART2, b.get());
+        }
         //for (volatile uint32_t i = 0; i < 500000; ++i); // задержки в попугаях
     }
 
